@@ -1,14 +1,24 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { ArrowRight, Check, Shuffle } from "lucide-react";
-import { useMemo, useRef, useState } from "react";
+import { ArrowRight, Check, Shuffle, UserRound } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { ActivityCard } from "@/components/jeda/ActivityCard";
 import { DayGauge } from "@/components/jeda/DayGauge";
+import { OnboardingDialog } from "@/components/jeda/OnboardingDialog";
 import { ThemeToggle } from "@/components/jeda/ThemeToggle";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
+import { useProfile } from "@/hooks/use-profile";
 import { MOODS, pickActivities, type Activity, type MoodId } from "@/lib/activities";
 import { computeDay, formatClock, formatDuration } from "@/lib/day-balance";
+import {
+  defaultSchedule,
+  greeting,
+  introLine,
+  profileSummary,
+  resultNote,
+  workLabel,
+} from "@/lib/profile";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/")({
@@ -44,7 +54,18 @@ function Index() {
   const [bedtime, setBedtime] = useState(22.5);
   const [mood, setMood] = useState<MoodId | null>(null);
   const [plan, setPlan] = useState<Plan | null>(null);
+  const [editingProfile, setEditingProfile] = useState(false);
   const resultsRef = useRef<HTMLElement>(null);
+  const { profile, ready, save } = useProfile();
+
+  // Pre-fill the day sliders whenever the profile is loaded or changed.
+  useEffect(() => {
+    if (!profile) return;
+    const s = defaultSchedule(profile);
+    setWork(s.work);
+    setSleep(s.sleep);
+    setBedtime(s.bedtime);
+  }, [profile]);
 
   const day = useMemo(
     () => computeDay({ workHours: work, sleepHours: sleep, bedtime }),
@@ -53,7 +74,14 @@ function Index() {
 
   const design = () => {
     if (!mood) return;
-    setPlan((p) => ({ key: (p?.key ?? 0) + 1, mood, items: pickActivities(mood) }));
+    setPlan((p) => ({
+      key: (p?.key ?? 0) + 1,
+      mood,
+      items: pickActivities(mood, {
+        profile,
+        exclude: p?.mood === mood ? p.items.map((a) => a.id) : [],
+      }),
+    }));
     window.setTimeout(() => {
       resultsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
     }, 80);
@@ -61,9 +89,24 @@ function Index() {
 
   const planMood = plan ? MOODS.find((m) => m.id === plan.mood) : null;
   const planMinutes = plan?.items.reduce((s, a) => s + a.minutes, 0) ?? 0;
+  const workText = workLabel(profile);
+  const workLegend = profile ? workText.replace(/^Jam /, "") : "Kerja / Sekolah";
 
   return (
     <div className="min-h-screen bg-ambient">
+      <OnboardingDialog
+        open={ready && (!profile || editingProfile)}
+        initial={profile}
+        onClose={profile ? () => setEditingProfile(false) : undefined}
+        onSave={(p) => {
+          save(p);
+          setEditingProfile(false);
+          setPlan((cur) =>
+            cur ? { key: cur.key + 1, mood: cur.mood, items: pickActivities(cur.mood, { profile: p }) } : cur,
+          );
+        }}
+      />
+
       <div className="mx-auto max-w-6xl px-6 sm:px-10">
         {/* Header */}
         <header className="flex items-start justify-between gap-6 pt-8 sm:pt-12">
@@ -75,12 +118,39 @@ function Index() {
               Temukan ruang di sela rutinitasmu.
             </p>
           </div>
-          <ThemeToggle />
+          <div className="flex items-center gap-2.5">
+            {profile && (
+              <button
+                type="button"
+                onClick={() => setEditingProfile(true)}
+                aria-label="Ubah profil"
+                title="Ubah profil"
+                className="inline-flex h-10 max-w-[10rem] items-center gap-2 rounded-full border border-border bg-card pl-1.5 pr-4 text-sm text-foreground shadow-soft transition-colors hover:bg-accent"
+              >
+                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-muted">
+                  <UserRound className="h-3.5 w-3.5" strokeWidth={1.75} />
+                </span>
+                <span className="truncate">{profile.name.split(/\s+/)[0]}</span>
+              </button>
+            )}
+            <ThemeToggle />
+          </div>
         </header>
 
         <main>
+          {profile && (
+            <div className="animate-rise pt-14 sm:pt-20">
+              <p className="font-display text-3xl leading-tight text-foreground sm:text-4xl">
+                {greeting(profile.name, new Date().getHours())}
+              </p>
+              <p className="mt-2 max-w-xl text-sm leading-relaxed text-muted-foreground sm:text-base">
+                {introLine(profile)}
+              </p>
+            </div>
+          )}
+
           {/* 01 — Gauge */}
-          <section className="pt-16 sm:pt-24" aria-labelledby="ritme">
+          <section className={profile ? "pt-14 sm:pt-20" : "pt-16 sm:pt-24"} aria-labelledby="ritme">
             <SectionLabel n="01" title="Ritme Harimu" id="ritme" />
             <div className="mt-10 grid items-center gap-14 md:grid-cols-[1.1fr_1fr] md:gap-20">
               <DayGauge day={day} />
@@ -94,7 +164,7 @@ function Index() {
 
                 <div className="space-y-8">
                   <Control
-                    label="Jam Kerja / Sekolah"
+                    label={workText}
                     dot="bg-seg-work"
                     range="bg-seg-work"
                     value={work}
@@ -128,13 +198,27 @@ function Index() {
                   />
                 </div>
 
-                <div className="flex flex-wrap gap-x-6 gap-y-2 border-t border-border pt-6 text-xs text-muted-foreground">
-                  <Legend className="bg-seg-sleep" label="Tidur" />
-                  <Legend className="bg-seg-work" label="Kerja / Sekolah" />
-                  <Legend className="bg-seg-free" label="Waktu Bebas" />
-                  <span className="flex items-center gap-2">
-                    <span className="h-2 w-2 rounded-full bg-foreground" /> Sekarang
-                  </span>
+                <div className="space-y-3 border-t border-border pt-6">
+                  <div className="flex flex-wrap gap-x-6 gap-y-2 text-xs text-muted-foreground">
+                    <Legend className="bg-seg-sleep" label="Tidur" />
+                    <Legend className="bg-seg-work" label={workLegend} />
+                    <Legend className="bg-seg-free" label="Waktu Bebas" />
+                    <span className="flex items-center gap-2">
+                      <span className="h-2 w-2 rounded-full bg-foreground" /> Sekarang
+                    </span>
+                  </div>
+                  {profile && (
+                    <p className="text-xs text-muted-foreground/80">
+                      {profileSummary(profile)}.{" "}
+                      <button
+                        type="button"
+                        onClick={() => setEditingProfile(true)}
+                        className="underline decoration-border underline-offset-4 transition-colors hover:text-foreground"
+                      >
+                        Ubah
+                      </button>
+                    </p>
+                  )}
                 </div>
               </div>
             </div>
@@ -205,9 +289,7 @@ function Index() {
                     {planMood.headline}
                   </h2>
                   <p className="mt-3 text-sm text-muted-foreground">
-                    {day.free * 60 >= planMinutes
-                      ? `Total ${planMinutes} menit — hanya sebagian kecil dari ${formatDuration(day.free)} waktu bebasmu.`
-                      : `Waktumu sempit hari ini. Cukup curi satu jeda saja, itu sudah berarti.`}
+                    {resultNote(profile, planMinutes, formatDuration(day.free), day.free * 60 >= planMinutes)}
                   </p>
                 </div>
                 <Button variant="soft" size="lg" onClick={design} className="self-start rounded-full sm:self-auto">
