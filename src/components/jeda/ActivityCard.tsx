@@ -1,5 +1,6 @@
-import { Pause, Play, RotateCcw, Timer } from "lucide-react";
+import { Pause, Play, RotateCcw, Share2, Timer } from "lucide-react";
 import type { CSSProperties } from "react";
+import { toast } from "sonner";
 import { useCountdown } from "@/hooks/use-countdown";
 import type { Activity } from "@/lib/activities";
 
@@ -26,6 +27,27 @@ export function ActivityCard({
   const progress = 1 - remaining / total;
   const Icon = activity.icon;
   const touched = remaining !== total;
+
+  const share = async () => {
+    const text = `Baru saja menyelesaikan jeda hari ini di JedaHari 🌿✨ — "${activity.title}" (${activity.minutes} menit) buat diriku lebih tenang. Coba di jedahari.app`;
+    const nav = navigator as Navigator & { share?: (data: ShareData) => Promise<void> };
+    if (typeof nav.share === "function") {
+      try {
+        await nav.share({ title: "JedaHari", text });
+        return;
+      } catch (err) {
+        if ((err as DOMException)?.name === "AbortError") return;
+      }
+    }
+    try {
+      await navigator.clipboard.writeText(text);
+      toast.success("Pesan jeda tersalin", {
+        description: "Tempelkan ke WhatsApp, Telegram, atau aplikasi mana pun.",
+      });
+    } catch {
+      toast.error("Tidak dapat menyalin. Salin pesan secara manual ya.");
+    }
+  };
 
   return (
     <article
@@ -111,6 +133,17 @@ export function ActivityCard({
             </button>
           </div>
         </div>
+
+        {done && (
+          <button
+            type="button"
+            onClick={share}
+            className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-full border border-border bg-card py-2.5 text-sm font-medium text-foreground shadow-soft transition-all duration-300 hover:-translate-y-0.5 hover:border-foreground/30 hover:shadow-lift focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            <Share2 className="h-4 w-4" strokeWidth={1.75} />
+            Bagikan Jeda
+          </button>
+        )}
       </div>
     </article>
   );
