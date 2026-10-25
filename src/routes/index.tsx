@@ -289,9 +289,7 @@ function Index() {
                     {planMood.headline}
                   </h2>
                   <p className="mt-3 text-sm text-muted-foreground">
-                    {day.free * 60 >= planMinutes
-                      ? `Total ${planMinutes} menit — hanya sebagian kecil dari ${formatDuration(day.free)} waktu bebasmu.`
-                      : `Waktumu sempit hari ini. Cukup curi satu jeda saja, itu sudah berarti.`}
+                    {resultNote(profile, planMinutes, formatDuration(day.free), day.free * 60 >= planMinutes)}
                   </p>
                 </div>
                 <Button variant="soft" size="lg" onClick={design} className="self-start rounded-full sm:self-auto">
