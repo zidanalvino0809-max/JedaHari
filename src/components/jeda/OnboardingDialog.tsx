@@ -25,7 +25,7 @@ export function OnboardingDialog({
   initial: Profile | null;
   onSave: (p: Profile) => void;
   /** Absent on first run: the user must finish onboarding. */
-  onClose?: () => void;
+  onClose?: (() => void) | undefined;
 }) {
   const [name, setName] = useState("");
   const [status, setStatus] = useState<Status | null>(null);
