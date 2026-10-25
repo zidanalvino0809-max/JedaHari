@@ -286,7 +286,7 @@ function Control(props: {
         min={props.min}
         max={props.max}
         step={0.5}
-        onValueChange={([v]) => props.onChange(v)}
+        onValueChange={([v]) => v !== undefined && props.onChange(v)}
       />
       <p className="mt-1.5 text-xs text-muted-foreground">{props.hint}</p>
     </div>

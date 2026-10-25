@@ -193,7 +193,9 @@ export function pickActivities(mood: MoodId, count = 3): Activity[] {
   const pool = [...ACTIVITIES[mood]];
   for (let i = pool.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
-    [pool[i], pool[j]] = [pool[j], pool[i]];
+    const tmp = pool[i]!;
+    pool[i] = pool[j]!;
+    pool[j] = tmp;
   }
   return pool.slice(0, count);
 }
