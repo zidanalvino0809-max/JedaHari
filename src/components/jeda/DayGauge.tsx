@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import type { DayBalance, Segment } from "@/lib/day-balance";
+import { formatNow, hourOfDay, type DayBalance, type Segment } from "@/lib/day-balance";
 
 const SIZE = 340;
 const C = SIZE / 2;
@@ -23,21 +23,37 @@ function polar(hour: number, radius: number) {
 
 export function DayGauge({ day }: { day: DayBalance }) {
   const [mounted, setMounted] = useState(false);
-  const [now, setNow] = useState<number | null>(null);
+  const [now, setNow] = useState<Date | null>(null);
 
   useEffect(() => {
     const raf = requestAnimationFrame(() => setMounted(true));
-    const update = () => {
+    let timeout: number | undefined;
+
+    // Tick on each real second boundary of the system clock so the dot never drifts.
+    const tick = () => {
       const d = new Date();
-      setNow(d.getHours() + d.getMinutes() / 60);
+      setNow(d);
+      timeout = window.setTimeout(tick, 1000 - d.getMilliseconds() + 5);
     };
-    update();
-    const id = window.setInterval(update, 60_000);
+    // Re-sync immediately when the tab becomes visible again (timers are throttled in background).
+    const resync = () => {
+      if (document.visibilityState !== "visible") return;
+      window.clearTimeout(timeout);
+      tick();
+    };
+
+    tick();
+    document.addEventListener("visibilitychange", resync);
+    window.addEventListener("focus", resync);
     return () => {
       cancelAnimationFrame(raf);
-      window.clearInterval(id);
+      window.clearTimeout(timeout);
+      document.removeEventListener("visibilitychange", resync);
+      window.removeEventListener("focus", resync);
     };
   }, []);
+
+  const nowHour = now ? hourOfDay(now) : null;
 
   const freeH = Math.floor(day.free);
   const freeM = Math.round((day.free - freeH) * 60);
