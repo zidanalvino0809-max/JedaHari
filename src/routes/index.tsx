@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { ArrowRight, Check, Shuffle, UserRound } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 
+import { AboutLink } from "@/components/jeda/AboutDialog";
 import { ActivityCard } from "@/components/jeda/ActivityCard";
 import { DayGauge } from "@/components/jeda/DayGauge";
 import { OnboardingDialog } from "@/components/jeda/OnboardingDialog";
@@ -315,6 +316,7 @@ function Index() {
           <span className="font-display text-base text-foreground">JedaHari</span>
           <span>Berhenti sejenak bukan berarti tertinggal.</span>
         </footer>
+        <AboutLink />
       </div>
     </div>
   );
