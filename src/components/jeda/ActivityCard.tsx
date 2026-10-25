@@ -1,4 +1,4 @@
-import { Pause, Play, RotateCcw } from "lucide-react";
+import { Pause, Play, RotateCcw, Timer } from "lucide-react";
 import type { CSSProperties } from "react";
 import { useCountdown } from "@/hooks/use-countdown";
 import type { Activity } from "@/lib/activities";
@@ -39,10 +39,17 @@ export function ActivityCard({
         <span className="font-display text-lg text-muted-foreground">0{index + 1}</span>
       </div>
 
-      <p className="eyebrow mt-8">
-        {activity.category} · {activity.minutes} menit
-      </p>
-      <h3 className="mt-2 font-display text-3xl leading-tight text-foreground">{activity.title}</h3>
+      <p className="eyebrow mt-8">{activity.category}</p>
+      <div className="mt-2 flex items-start justify-between gap-3">
+        <h3 className="font-display text-3xl leading-tight text-foreground">{activity.title}</h3>
+        <span
+          className="mt-1.5 inline-flex shrink-0 items-center gap-1.5 rounded-full border border-border bg-muted/60 px-3 py-1 text-xs font-medium tabular-nums text-foreground"
+          aria-label={`Durasi ${activity.minutes} menit`}
+        >
+          <Timer className="h-3.5 w-3.5 text-seg-free" strokeWidth={2} aria-hidden />
+          {activity.minutes} Menit
+        </span>
+      </div>
       <p className="mt-3 text-sm leading-relaxed text-muted-foreground">{activity.description}</p>
 
       <div className="mt-auto pt-8">

@@ -1,5 +1,16 @@
 import { describe, expect, it } from "vitest";
-import { computeDay, formatClock, formatDuration } from "./day-balance";
+import { computeDay, formatClock, formatDuration, formatNow, hourOfDay } from "./day-balance";
+
+describe("current time", () => {
+  it("places the now marker by local hours, minutes and seconds", () => {
+    expect(hourOfDay(new Date(2026, 9, 25, 19, 30, 0))).toBe(19.5);
+    expect(hourOfDay(new Date(2026, 9, 25, 6, 0, 36))).toBeCloseTo(6.01, 6);
+  });
+
+  it("labels the current time without rounding ahead", () => {
+    expect(formatNow(new Date(2026, 9, 25, 19, 52, 59))).toBe("19.52");
+  });
+});
 
 describe("computeDay", () => {
   it("free time is 24 minus work and sleep hours", () => {

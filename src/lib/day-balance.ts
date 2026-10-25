@@ -71,3 +71,13 @@ export function formatClock(hour: number): string {
   const m = totalMin % 60;
   return `${String(h).padStart(2, "0")}.${String(m).padStart(2, "0")}`;
 }
+
+/** Fractional hour of day (0–24) from the user's local system clock, to the second. */
+export function hourOfDay(date: Date): number {
+  return date.getHours() + date.getMinutes() / 60 + date.getSeconds() / 3600;
+}
+
+/** Wall-clock label (HH.MM) that truncates rather than rounds, so it never runs ahead of the clock. */
+export function formatNow(date: Date): string {
+  return `${String(date.getHours()).padStart(2, "0")}.${String(date.getMinutes()).padStart(2, "0")}`;
+}

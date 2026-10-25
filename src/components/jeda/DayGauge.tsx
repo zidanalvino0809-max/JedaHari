@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import type { DayBalance, Segment } from "@/lib/day-balance";
+import { formatNow, hourOfDay, type DayBalance, type Segment } from "@/lib/day-balance";
 
 const SIZE = 340;
 const C = SIZE / 2;
@@ -23,21 +23,37 @@ function polar(hour: number, radius: number) {
 
 export function DayGauge({ day }: { day: DayBalance }) {
   const [mounted, setMounted] = useState(false);
-  const [now, setNow] = useState<number | null>(null);
+  const [now, setNow] = useState<Date | null>(null);
 
   useEffect(() => {
     const raf = requestAnimationFrame(() => setMounted(true));
-    const update = () => {
+    let timeout: number | undefined;
+
+    // Tick on each real second boundary of the system clock so the dot never drifts.
+    const tick = () => {
       const d = new Date();
-      setNow(d.getHours() + d.getMinutes() / 60);
+      setNow(d);
+      timeout = window.setTimeout(tick, 1000 - d.getMilliseconds() + 5);
     };
-    update();
-    const id = window.setInterval(update, 60_000);
+    // Re-sync immediately when the tab becomes visible again (timers are throttled in background).
+    const resync = () => {
+      if (document.visibilityState !== "visible") return;
+      window.clearTimeout(timeout);
+      tick();
+    };
+
+    tick();
+    document.addEventListener("visibilitychange", resync);
+    window.addEventListener("focus", resync);
     return () => {
       cancelAnimationFrame(raf);
-      window.clearInterval(id);
+      window.clearTimeout(timeout);
+      document.removeEventListener("visibilitychange", resync);
+      window.removeEventListener("focus", resync);
     };
   }, []);
+
+  const nowHour = now ? hourOfDay(now) : null;
 
   const freeH = Math.floor(day.free);
   const freeM = Math.round((day.free - freeH) * 60);
@@ -120,12 +136,22 @@ export function DayGauge({ day }: { day: DayBalance }) {
           );
         })}
 
-        {/* now marker */}
-        {now !== null &&
+        {/* now marker — positioned from the system clock, to the second */}
+        {nowHour !== null &&
           (() => {
-            const p = polar(now, R + STROKE / 2 + 12);
+            const p = polar(nowHour, R + STROKE / 2 + 12);
+            const tickIn = polar(nowHour, R + STROKE / 2 + 2);
             return (
-              <g>
+              <g aria-label={`Sekarang pukul ${formatNow(now!)}`}>
+                <line
+                  x1={tickIn.x}
+                  y1={tickIn.y}
+                  x2={p.x}
+                  y2={p.y}
+                  strokeWidth={1}
+                  strokeLinecap="round"
+                  className="stroke-foreground/40"
+                />
                 <circle cx={p.x} cy={p.y} r={7} className="fill-seg-free/30 animate-breathe" style={{ transformOrigin: `${p.x}px ${p.y}px` }} />
                 <circle cx={p.x} cy={p.y} r={3.5} className="fill-foreground" />
               </g>
@@ -146,6 +172,17 @@ export function DayGauge({ day }: { day: DayBalance }) {
           )}
         </div>
         <span className="mt-3 text-xs text-muted-foreground">{pct}% dari harimu</span>
+        <span
+          className="mt-2 flex h-4 items-center gap-1.5 text-[11px] tabular-nums text-muted-foreground"
+          aria-live="off"
+        >
+          {now && (
+            <>
+              <span className="h-1.5 w-1.5 rounded-full bg-foreground" />
+              Sekarang {formatNow(now)}
+            </>
+          )}
+        </span>
       </div>
     </div>
   );
