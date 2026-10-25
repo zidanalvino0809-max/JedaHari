@@ -136,12 +136,22 @@ export function DayGauge({ day }: { day: DayBalance }) {
           );
         })}
 
-        {/* now marker */}
-        {now !== null &&
+        {/* now marker — positioned from the system clock, to the second */}
+        {nowHour !== null &&
           (() => {
-            const p = polar(now, R + STROKE / 2 + 12);
+            const p = polar(nowHour, R + STROKE / 2 + 12);
+            const tickIn = polar(nowHour, R + STROKE / 2 + 2);
             return (
-              <g>
+              <g aria-label={`Sekarang pukul ${formatNow(now!)}`}>
+                <line
+                  x1={tickIn.x}
+                  y1={tickIn.y}
+                  x2={p.x}
+                  y2={p.y}
+                  strokeWidth={1}
+                  strokeLinecap="round"
+                  className="stroke-foreground/40"
+                />
                 <circle cx={p.x} cy={p.y} r={7} className="fill-seg-free/30 animate-breathe" style={{ transformOrigin: `${p.x}px ${p.y}px` }} />
                 <circle cx={p.x} cy={p.y} r={3.5} className="fill-foreground" />
               </g>
@@ -162,6 +172,17 @@ export function DayGauge({ day }: { day: DayBalance }) {
           )}
         </div>
         <span className="mt-3 text-xs text-muted-foreground">{pct}% dari harimu</span>
+        <span
+          className="mt-2 flex h-4 items-center gap-1.5 text-[11px] tabular-nums text-muted-foreground"
+          aria-live="off"
+        >
+          {now && (
+            <>
+              <span className="h-1.5 w-1.5 rounded-full bg-foreground" />
+              Sekarang {formatNow(now)}
+            </>
+          )}
+        </span>
       </div>
     </div>
   );
