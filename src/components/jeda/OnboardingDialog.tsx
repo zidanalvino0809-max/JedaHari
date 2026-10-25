@@ -86,7 +86,7 @@ export function OnboardingDialog({
               maxLength={40}
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="Misalnya, Dinda"
+              placeholder="Misalnya, Zidan"
               className={inputCls}
             />
             {touched && !name.trim() && <ErrorText>Nama belum diisi.</ErrorText>}
